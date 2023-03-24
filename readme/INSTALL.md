@@ -7,7 +7,7 @@ After install Anaconda:
 0. [Optional but recommended] create a new conda environment. 
 
     ~~~
-    conda create --name CenterNet python=3.8
+    conda create --name CenterNet python=3.1
     ~~~
     And activate the environment.
     
