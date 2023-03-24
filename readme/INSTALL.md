@@ -21,7 +21,7 @@ After install Anaconda:
     conda install pytorch torchvision  pytorch-cuda=11.7 -c pytorch -c nvidia
     ~~~
     
-    And disable cudnn batch normalization(Due to [this issue](https://github.com/xingyizhou/pytorch-pose-hg-3d/issues/16)). (NOT DONE)
+    And disable cudnn batch normalization(Due to [this issue](https://github.com/xingyizhou/pytorch-pose-hg-3d/issues/16)). (**NOT DONE**)
     
      ~~~
     # PYTORCH=/path/to/pytorch # usually ~/anaconda3/envs/CenterNet/lib/python3.6/site-packages/
@@ -58,13 +58,13 @@ After install Anaconda:
     ~~~
     
     
-5. Compile deformable convolutional (from [DCNv2](https://github.com/CharlesShang/DCNv2/tree/pytorch_0.4)). (NOT WORKING WITH PYTORCH>0.4.1)
+5. Compile deformable convolutional (from [DCNv2](https://github.com/CharlesShang/DCNv2/tree/pytorch_0.4)). (**NOT WORKING WITH PYTORCH>0.4.1**)
 
     ~~~
     cd $CenterNet_ROOT/src/lib/models/networks/DCNv2
     ./make.sh
     ~~~
-6. [Optional, only required if you are using extremenet or multi-scale testing] Compile NMS if your want to use multi-scale testing or test ExtremeNet.
+6. [Optional, only required if you are using extremenet or multi-scale testing] (**DONE**) Compile NMS if your want to use multi-scale testing or test ExtremeNet.
 
     ~~~
     cd $CenterNet_ROOT/src/lib/external
