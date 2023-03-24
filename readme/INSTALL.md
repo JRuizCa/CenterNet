@@ -15,10 +15,10 @@ After install Anaconda:
     conda activate CenterNet
     ~~~
 
-1. Install pytorch (From [page](https://pytorch.org/get-started/previous-versions/)):
+1. Install pytorch (From [page](https://pytorch.org/)):
 
     ~~~
-    conda install pytorch==1.13.1 torchvision==0.14.1 pytorch-cuda=11.7 -c pytorch -c nvidia
+    conda install pytorch torchvision  pytorch-cuda=11.7 -c pytorch -c nvidia
     ~~~
     
     And disable cudnn batch normalization(Due to [this issue](https://github.com/xingyizhou/pytorch-pose-hg-3d/issues/16)). (NOT DONE)
