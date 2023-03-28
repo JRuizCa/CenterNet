@@ -1,8 +1,8 @@
 name: CenterNet2
 channels:
   - pytorch
-  - conda-forge
   - nvidia
+  - conda-forge
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
@@ -22,6 +22,7 @@ dependencies:
   - cuda-nvtx=11.7.91=0
   - cuda-runtime=11.7.1=0
   - cudatoolkit=11.7.0=hd8887f6_10
+  - cython=0.29.33=py310h6a678d5_0
   - ffmpeg=4.3=hf484d3e_0
   - filelock=3.9.0=py310h06a4308_0
   - flit-core=3.8.0=py310h06a4308_0
@@ -102,11 +103,11 @@ dependencies:
   - zlib=1.2.13=h5eee18b_0
   - zstd=1.5.2=ha4553b6_0
   - pip:
-    - easydict==1.10
-    - llvmlite==0.39.1
-    - mpmath==1.2.1
-    - numba==0.56.4
-    - opencv-python==4.7.0.72
-    - progress==1.6
-    - scipy==1.10.1
-prefix: /mnt/data/u/jrc/anaconda3/envs/CenterNet2
+      - easydict==1.10
+      - llvmlite==0.39.1
+      - mpmath==1.2.1
+      - numba==0.56.4
+      - opencv-python==4.7.0.72
+      - progress==1.6
+      - scipy==1.10.1
+prefix: /home/cda/anaconda3/envs/CenterNet2
