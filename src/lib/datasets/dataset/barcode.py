@@ -11,6 +11,7 @@ import os
 import torch.utils.data as data
 
 
+
 class Barcode(data.Dataset):
     num_classes = 1
     default_resolution = [512, 512]
