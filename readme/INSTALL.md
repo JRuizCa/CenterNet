@@ -7,13 +7,21 @@ After install Anaconda:
 0. [Optional but recommended] create a new conda environment. 
 
     ~~~
-    conda create --name CenterNet python=3.1
+    conda create --name CenterNet python=3.6 
     ~~~
     And activate the environment.
     
     ~~~
     conda activate CenterNet
     ~~~
+
+    Install correct python version for cocoapi
+
+    ~~~
+    conda install python=3.10.10
+    ~~~
+
+
 
 1. Install pytorch (From [page](https://pytorch.org/)):
 
@@ -41,6 +49,11 @@ After install Anaconda:
     cd $COCOAPI/PythonAPI
     make
     python setup.py install --user
+    ~~~
+
+    This worked in Linux but didn't work in WSL. For WSL (From [page](https://github.com/philferriere/cocoapi#egg=pycocotools))
+    ~~~
+    pip install git+https://github.com/philferriere/cocoapi.git#subdirectory=PythonAPI
     ~~~
 
 3. Clone this repo:
