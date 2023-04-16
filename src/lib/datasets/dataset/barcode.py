@@ -22,7 +22,8 @@ class Barcode(data.Dataset):
 
     def __init__(self, opt, split):
         super(Barcode, self).__init__()
-        self.data_dir = os.path.join(opt.data_dir, 'barcode')
+        # self.data_dir = os.path.join(opt.data_dir, 'barcode')
+        self.data_dir = 'synthetic-dataset/dataset'
         self.img_dir = os.path.join(self.data_dir, split)
         if split == 'test':
             self.annot_path = os.path.join(
