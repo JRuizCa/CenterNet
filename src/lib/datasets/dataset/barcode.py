@@ -22,8 +22,8 @@ class Barcode(data.Dataset):
 
     def __init__(self, opt, split):
         super(Barcode, self).__init__()
-        # self.data_dir = os.path.join(opt.data_dir, 'barcode')
-        self.data_dir = 'synthetic-dataset/dataset'
+        self.data_dir = os.path.join(opt.data_dir, 'barcode')
+        #self.data_dir = 'synthetic-dataset/dataset'
         self.img_dir = os.path.join(self.data_dir, split)
         if split == 'test':
             self.annot_path = os.path.join(
@@ -53,8 +53,8 @@ class Barcode(data.Dataset):
             [-0.5832747, 0.00994535, -0.81221408],
             [-0.56089297, 0.71832671, 0.41158938]
         ], dtype=np.float32)
-        # self.mean = np.array([0.485, 0.456, 0.406], np.float32).reshape(1, 1, 3)
-        # self.std = np.array([0.229, 0.224, 0.225], np.float32).reshape(1, 1, 3)
+        self.mean = np.array([0.485, 0.456, 0.406], np.float32).reshape(1, 1, 3)
+        self.std = np.array([0.229, 0.224, 0.225], np.float32).reshape(1, 1, 3)
 
         self.split = split
         self.opt = opt
