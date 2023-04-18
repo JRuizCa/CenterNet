@@ -4,9 +4,9 @@ legacy/*
 .DS_Store
 debug/*
 *.DS_Store
-*.json
 *.mat
-*/dataset/**
+*/dataset/train/**
+*/dataset/val/**
 src/.vscode/*
 preds/*
 *.h5
