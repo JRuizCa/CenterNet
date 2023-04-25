@@ -62,6 +62,8 @@ class Debugger(object):
       self.focal_length = 721.5377
       self.W = 1242
       self.H = 375
+    elif num_classes == 1 or dataset == 'barcode':
+        self.names = barcode_class_name
     num_classes = len(self.names)
     self.down_ratio=down_ratio
     # for bird view
@@ -455,6 +457,8 @@ coco_class_name = [
      'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
      'scissors', 'teddy bear', 'hair drier', 'toothbrush'
 ]
+
+barcode_class_name = ['barcode']
 
 color_list = np.array(
         [
