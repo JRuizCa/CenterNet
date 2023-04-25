@@ -13,7 +13,8 @@ from utils.debugger import Debugger
 from utils.post_process import ctdet_post_process
 from utils.oracle_utils import gen_oracle_map
 from .base_trainer import BaseTrainer
-
+from callbacks import Callback
+import logging
 class CtdetLoss(torch.nn.Module):
   def __init__(self, opt):
     super(CtdetLoss, self).__init__()
@@ -130,3 +131,28 @@ class CtdetTrainer(BaseTrainer):
       batch['meta']['s'].cpu().numpy(),
       output['hm'].shape[2], output['hm'].shape[3], output['hm'].shape[1])
     results[batch['meta']['img_id'].cpu().numpy()[0]] = dets_out[0]
+
+  def register_callback(self, callback_fn: Callback) -> None:
+    """
+    Register a callback to be called after each evaluation run
+    Args:
+        callback_fn: a callable that accepts 2 inputs (output, target)
+                        - output is the model's output
+                        - target is the values of the target variable
+    """
+    self.callbacks.append(callback_fn)
+
+  def notify_callbacks(self, notification, *args, **kwargs) -> None:
+    """Calls all callbacks registered with this class.
+    Args:
+        notification: The type of notification to be called.
+    """
+    for callback in self.callbacks:
+      try:
+        method = getattr(callback, notification)
+        method(*args, **kwargs)
+      except (AttributeError, TypeError) as e:
+        logging.error(
+          f"callback {callback.__class__.__name__} doesn't fully implement the required interface {e}"
+          # pylint: disable=line-too-long
+        )

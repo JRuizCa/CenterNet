@@ -17,8 +17,8 @@ except:
 class Logger(object):
   def __init__(self, opt):
     """Create a summary writer logging to log_dir."""
-    if not os.path.exists(opt.save_dir):
-      os.makedirs(opt.save_dir)
+    if not os.path.exists(opt.save_dir):  # barcode_hg
+      os.makedirs(opt.save_dir)  # barcode_hg/debug
     if not os.path.exists(opt.debug_dir):
       os.makedirs(opt.debug_dir)
    
@@ -39,8 +39,10 @@ class Logger(object):
           
     log_dir = opt.save_dir + '/logs_{}'.format(time_str)
     if USE_TENSORBOARD:
+      print('Using Tensorboard')
       self.writer = tensorboardX.SummaryWriter(log_dir=log_dir)
     else:
+      print('Not using Tensorboard')
       if not os.path.exists(os.path.dirname(log_dir)):
         os.mkdir(os.path.dirname(log_dir))
       if not os.path.exists(log_dir):

@@ -7,7 +7,7 @@ import torch
 from progress.bar import Bar
 from models.data_parallel import DataParallel
 from utils.utils import AverageMeter
-
+from callbacks import Callback
 
 class ModelWithLoss(torch.nn.Module):
   def __init__(self, model, loss):
@@ -24,9 +24,11 @@ class BaseTrainer(object):
   def __init__(
     self, opt, model, optimizer=None):
     self.opt = opt
+    self.iteration = 0
     self.optimizer = optimizer
     self.loss_stats, self.loss = self._get_losses(opt)
     self.model_with_loss = ModelWithLoss(model, self.loss)
+    self.callbacks = []
 
   def set_device(self, gpus, chunk_sizes, device):
     if len(gpus) > 1:
@@ -52,6 +54,7 @@ class BaseTrainer(object):
       torch.cuda.empty_cache()
 
     opt = self.opt
+    self.notify_callbacks("on_training_start", opt.num_epochs)
     results = {}
     data_time, batch_time = AverageMeter(), AverageMeter()
     avg_loss_stats = {l: AverageMeter() for l in self.loss_stats}
@@ -59,6 +62,12 @@ class BaseTrainer(object):
     bar = Bar('{}/{}'.format(opt.task, opt.exp_id), max=num_iters)
     end = time.time()
     for iter_id, batch in enumerate(data_loader):
+      if phase == 'train':
+        self.iteration += 1
+        self.notify_callbacks("on_epoch_start", epoch, len(data_loader))
+      else:
+        self.notify_callbacks("on_evaluation_start", len(data_loader))
+
       print(f'Iteration number {iter_id} of {num_iters}')
       if iter_id >= num_iters:
         break
@@ -68,6 +77,21 @@ class BaseTrainer(object):
         if k != 'meta':
           batch[k] = batch[k].to(device=opt.device, non_blocking=True)    
       output, loss, loss_stats = model_with_loss(batch)
+      if phase == 'train':
+        self.notify_callbacks(
+          "on_epoch_step",
+          self.iteration,
+          iter_id,
+          loss,
+        )
+      # else:
+      #   self.notify_callbacks(
+      #     "on_evaluation_step",
+      #     iter_id,
+      #     outputs.detach().cpu(),
+      #     targets.detach().cpu(),
+      #     loss,
+      #   )
       loss = loss.mean()
       if phase == 'train':
         self.optimizer.zero_grad()
@@ -97,13 +121,22 @@ class BaseTrainer(object):
       
       if opt.test:
         self.save_result(output, batch, results)
+      if phase == 'train':
+        self.notify_callbacks("on_epoch_end", loss)
+      else:
+        self.notify_callbacks("on_evaluation_end")
       del output, loss, loss_stats
     
     bar.finish()
     ret = {k: v.avg for k, v in avg_loss_stats.items()}
     ret['time'] = bar.elapsed_td.total_seconds() / 60.
     return ret, results
-  
+  def register_callback(self, callback_fn):
+    raise NotImplementedError
+
+  def notify_callbacks(self, notification, *args, **kwargs):
+    raise NotImplementedError
+
   def debug(self, batch, output, iter_id):
     raise NotImplementedError
 

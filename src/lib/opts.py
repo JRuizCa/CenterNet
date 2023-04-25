@@ -44,8 +44,8 @@ class opts(object):
                              help='random seed') # from CornerNet
 
     # log
-    self.parser.add_argument('--print_iter', type=int, default=0, 
-                             help='disable progress bar and print to screen.')
+    self.parser.add_argument('--print_iter', type=int, default=0,
+                             help='1 to enable print')
     self.parser.add_argument('--hide_data_time', action='store_true',
                              help='not display time during training.')
     self.parser.add_argument('--save_all', action='store_true',
@@ -92,7 +92,7 @@ class opts(object):
                              help='batch size on the master gpu.')
     self.parser.add_argument('--num_iters', type=int, default=-1,
                              help='default: #samples / batch_size.')
-    self.parser.add_argument('--val_intervals', type=int, default=5,
+    self.parser.add_argument('--val_intervals', type=int, default=1,
                              help='number of epochs to run validation.')
     self.parser.add_argument('--trainval', action='store_true',
                              help='include validation in training and '

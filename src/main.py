@@ -5,7 +5,7 @@ from __future__ import print_function
 import _init_paths
 
 import os
-
+import time
 import torch
 import torch.utils.data
 from opts import opts
@@ -14,6 +14,8 @@ from models.data_parallel import DataParallel
 from logger import Logger
 from datasets.dataset_factory import get_dataset
 from trains.train_factory import train_factory
+from callbacks import DefaultModelCallback, TensorBoardCallback
+from torch.utils.tensorboard import SummaryWriter
 
 
 def main(opt):
@@ -23,7 +25,7 @@ def main(opt):
   opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
   print(opt)
 
-  logger = Logger(opt)
+  #logger = Logger(opt)
 
   os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
   opt.device = torch.device('cuda' if opt.gpus[0] >= 0 else 'cpu')
@@ -39,6 +41,12 @@ def main(opt):
   Trainer = train_factory[opt.task]
   trainer = Trainer(opt, model, optimizer)
   trainer.set_device(opt.gpus, opt.chunk_sizes, opt.device)
+
+  # Callbacks
+  log_dir = opt.save_dir + '/logs_{}'.format(time.strftime('%Y-%m-%d-%H-%M'))
+  tb_writer = SummaryWriter(log_dir=log_dir)
+  trainer.register_callback(DefaultModelCallback(visualization_dir=log_dir))
+  trainer.register_callback(TensorBoardCallback(tb_writer=tb_writer))
 
   print('Setting up data...')
   val_loader = torch.utils.data.DataLoader(
@@ -68,18 +76,12 @@ def main(opt):
   for epoch in range(start_epoch + 1, opt.num_epochs + 1):
     mark = epoch if opt.save_all else 'last'
     log_dict_train, _ = trainer.train(epoch, train_loader)
-    logger.write('epoch: {} |'.format(epoch))
-    for k, v in log_dict_train.items():
-      logger.scalar_summary('train_{}'.format(k), v, epoch)
-      logger.write('{} {:8f} | '.format(k, v))
     if opt.val_intervals > 0 and epoch % opt.val_intervals == 0:
       save_model(os.path.join(opt.save_dir, 'model_{}.pth'.format(mark)), 
                  epoch, model, optimizer)
       with torch.no_grad():
         log_dict_val, preds = trainer.val(epoch, val_loader)
-      for k, v in log_dict_val.items():
-        logger.scalar_summary('val_{}'.format(k), v, epoch)
-        logger.write('{} {:8f} | '.format(k, v))
+        trainer.notify_callbacks("on_training_iteration_end", log_dict_train['loss'], log_dict_val['loss'])
       if log_dict_val[opt.metric] < best:
         best = log_dict_val[opt.metric]
         save_model(os.path.join(opt.save_dir, 'model_best.pth'), 
@@ -87,7 +89,6 @@ def main(opt):
     else:
       save_model(os.path.join(opt.save_dir, 'model_last.pth'), 
                  epoch, model, optimizer)
-    logger.write('\n')
     if epoch in opt.lr_step:
       save_model(os.path.join(opt.save_dir, 'model_{}.pth'.format(epoch)), 
                  epoch, model, optimizer)
@@ -95,8 +96,6 @@ def main(opt):
       print('Drop LR to', lr)
       for param_group in optimizer.param_groups:
           param_group['lr'] = lr
-  logger.close()
-
 if __name__ == '__main__':
   opt = opts().parse()
   main(opt)
