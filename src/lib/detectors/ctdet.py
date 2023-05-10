@@ -24,42 +24,6 @@ from .base_detector import BaseDetector
 class CtdetDetector(BaseDetector):
   def __init__(self, opt):
     super(CtdetDetector, self).__init__(opt)
-
-  # def crop_image(image, crop_size=512, stride=512):
-  #   crop_images = []
-  #   height, width = image.shape[0:2]
-  #   for y in range(0, height, stride):
-  #     for x in range(0, width, stride):
-  #       crop_image = image[y:y+crop_size, x:x+crop_size]
-  #       crop_images.append(crop_image)
-  #   return crop_images
-  
-  # def merge_heatmaps(heatmaps, crop_size, stride):
-  #   height, width = heatmaps[0].shape[0:2]
-  #   heatmap = np.zeros((height, width))
-  #   for y in range(0, height, stride):
-  #     for x in range(0, width, stride):
-  #       crop_heatmap = heatmaps.pop(0)
-  #       heatmap[y:y+crop_size, x:x+crop_size] = crop_heatmap
-  #   return heatmap
-
-  # def merge_whs(whs, crop_size, stride):
-  #   height, width = whs[0].shape[0:2]
-  #   wh = np.zeros((height, width))
-  #   for y in range(0, height, stride):
-  #     for x in range(0, width, stride):
-  #       crop_wh = whs.pop(0)
-  #       wh[y:y+crop_size, x:x+crop_size] = crop_wh
-  #   return wh
-  
-  # def merge_regs(regs, crop_size, stride):
-  #   height, width = regs[0].shape[0:2]
-  #   reg = np.zeros((height, width))
-  #   for y in range(0, height, stride):
-  #     for x in range(0, width, stride):
-  #       crop_reg = regs.pop(0)
-  #       reg[y:y+crop_size, x:x+crop_size] = crop_reg
-  #   return reg
   
   def process(self, images, return_time=False):
     with torch.no_grad():

@@ -7,6 +7,7 @@ import numpy as np
 from progress.bar import Bar
 import time
 import torch
+import math
 
 from models.model import create_model, load_model
 from utils.image import get_affine_transform
@@ -78,6 +79,49 @@ class BaseDetector(object):
 
   def show_results(self, debugger, image, results):
    raise NotImplementedError
+  
+  def crop_image_sliding_window(self, image, window_size=512):
+    height, width = image.shape[0:2]
+    y_windows = height/window_size # 3
+    x_windows = width/window_size
+
+    round_y_windows = math.floor(y_windows + 1) # 4
+    round_x_windows = math.floor(x_windows + 1)
+    step_size_y = (round_y_windows - y_windows ) * window_size # 512
+    step_size_x = (round_x_windows - x_windows) * window_size
+
+    step_size_y = math.ceil(step_size_y/math.floor(y_windows)) # 170
+    step_size_x = math.ceil(step_size_x/math.floor(x_windows)) # 128
+    
+    y1 = 0
+    x1 = 0
+    for y in range(0, round_y_windows):
+      prev_y = y1 + window_size
+      for x in range(0, round_x_windows):
+        prev_x = x1 + window_size
+        if x == 0 and y == 0:
+          y2 = y1 + window_size
+          x2 = x1 + window_size
+          cropped_image = image[y1:y2, x1:x2]
+        elif x != 0 and y != 0:
+          y1 = prev_y - step_size_y
+          x1 = prev_x - step_size_x
+          y2 = y1 + window_size
+          x2 = x1 + window_size
+          cropped_image = image[y1:y2, x1:x2]
+        elif x == 0:
+          y1 = prev_y - step_size_y
+          x1 = 0
+          y2 = y1 + window_size
+          x2 = x1 + window_size       
+          cropped_image = image[y1:y2, x1:x2]
+        else:
+          y1 = 0
+          x1 = prev_x - step_size_x
+          y2 = y1 + window_size
+          x2 = x1 + window_size
+          cropped_image = image[y1:y2, x1:x2]
+        yield (x1, x2, y1, y2, cropped_image) 
 
   def run(self, image_or_path_or_tensor, meta=None):
     load_time, pre_time, net_time, dec_time, post_time = 0, 0, 0, 0, 0
@@ -101,34 +145,36 @@ class BaseDetector(object):
     detections = []
     for scale in self.scales:
       scale_start_time = time.time()
-      if not pre_processed:
-        images, meta = self.pre_process(image, scale, meta)
-      else:
-        # import pdb; pdb.set_trace()
-        images = pre_processed_images['images'][scale][0]
-        meta = pre_processed_images['meta'][scale]
-        meta = {k: v.numpy()[0] for k, v in meta.items()}
-      images = images.to(self.opt.device)
-      torch.cuda.synchronize()
-      pre_process_time = time.time()
-      pre_time += pre_process_time - scale_start_time
-      
-      output, dets, forward_time = self.process(images, return_time=True)
+      for x1, x2, y1, y2, image in self.crop_image_sliding_window(image):
+        print(x1, x2, y1, y2)
+        if not pre_processed:
+          images, meta = self.pre_process(image, scale, meta)
+        else:
+          # import pdb; pdb.set_trace()
+          images = pre_processed_images['images'][scale][0]
+          meta = pre_processed_images['meta'][scale]
+          meta = {k: v.numpy()[0] for k, v in meta.items()}
+        images = images.to(self.opt.device)
+        torch.cuda.synchronize()
+        pre_process_time = time.time()
+        pre_time += pre_process_time - scale_start_time
+        
+        output, dets, forward_time = self.process(images, return_time=True)
 
-      torch.cuda.synchronize()
-      net_time += forward_time - pre_process_time
-      decode_time = time.time()
-      dec_time += decode_time - forward_time
-      
-      if self.opt.debug >= 2:
-        self.debug(debugger, images, dets, output, scale)
-      
-      dets = self.post_process(dets, meta, scale)
-      torch.cuda.synchronize()
-      post_process_time = time.time()
-      post_time += post_process_time - decode_time
+        torch.cuda.synchronize()
+        net_time += forward_time - pre_process_time
+        decode_time = time.time()
+        dec_time += decode_time - forward_time
+        
+        if self.opt.debug >= 2:
+          self.debug(debugger, images, dets, output, scale)
+        
+        dets = self.post_process(dets, meta, scale)
+        torch.cuda.synchronize()
+        post_process_time = time.time()
+        post_time += post_process_time - decode_time
 
-      detections.append(dets)
+        detections.append(dets)
     
     results = self.merge_outputs(detections)
     torch.cuda.synchronize()
