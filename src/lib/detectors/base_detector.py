@@ -29,7 +29,7 @@ class BaseDetector(object):
 
     self.mean = np.array(opt.mean, dtype=np.float32).reshape(1, 1, 3)
     self.std = np.array(opt.std, dtype=np.float32).reshape(1, 1, 3)
-    self.max_per_image = 100
+    self.max_per_image = 3
     self.num_classes = opt.num_classes
     self.scales = opt.test_scales
     self.opt = opt
@@ -79,6 +79,17 @@ class BaseDetector(object):
 
   def show_results(self, debugger, image, results):
    raise NotImplementedError
+  
+  def map_cropped_detections(self, detections, x1, y1):
+    for j in range(1, len(detections)+1):
+      if len(detections[j]) == 0:
+        continue
+      for detection in detections[j]:
+        detection[0] = detection[0] + x1
+        detection[1] = detection[1] + y1
+        detection[2] = detection[2] + x1
+        detection[3] = detection[3] + y1
+    return detections
   
   def crop_image_sliding_window(self, image, window_size=512):
     height, width = image.shape[0:2]
@@ -145,10 +156,10 @@ class BaseDetector(object):
     detections = []
     for scale in self.scales:
       scale_start_time = time.time()
-      for x1, x2, y1, y2, image in self.crop_image_sliding_window(image):
+      for x1, x2, y1, y2, image_cropped in self.crop_image_sliding_window(image):
         print(x1, x2, y1, y2)
         if not pre_processed:
-          images, meta = self.pre_process(image, scale, meta)
+          images, meta = self.pre_process(image_cropped, scale, meta)
         else:
           # import pdb; pdb.set_trace()
           images = pre_processed_images['images'][scale][0]
@@ -173,8 +184,9 @@ class BaseDetector(object):
         torch.cuda.synchronize()
         post_process_time = time.time()
         post_time += post_process_time - decode_time
-
-        detections.append(dets)
+        
+        detections_all = self.map_cropped_detections(dets, x1, y1)
+        detections.append(detections_all)
     
     results = self.merge_outputs(detections)
     torch.cuda.synchronize()
