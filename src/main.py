@@ -83,20 +83,20 @@ def main(opt):
     
     if opt.val_intervals > 0 and epoch % opt.val_intervals == 0:
       trainer.notify_callbacks("on_evaluation_start", len(val_loader))
-      save_model(os.path.join(opt.save_dir, 'model_{}.pth'.format(mark)), 
+      save_model(os.path.join(log_dir, 'model_{}.pth'.format(mark)),
                  epoch, model, optimizer)
       with torch.no_grad():
         log_dict_val, preds = trainer.val(epoch, val_loader)
         trainer.notify_callbacks("on_training_iteration_end", log_dict_train['loss'], log_dict_val['loss'])
       if log_dict_val[opt.metric] < best:
         best = log_dict_val[opt.metric]
-        save_model(os.path.join(opt.save_dir, 'model_best.pth'), 
+        save_model(os.path.join(log_dir, 'model_best.pth'),
                    epoch, model)
     else:
-      save_model(os.path.join(opt.save_dir, 'model_last.pth'), 
+      save_model(os.path.join(log_dir, 'model_last.pth'),
                  epoch, model, optimizer)
     if epoch in opt.lr_step:
-      save_model(os.path.join(opt.save_dir, 'model_{}.pth'.format(epoch)), 
+      save_model(os.path.join(log_dir, 'model_{}.pth'.format(epoch)),
                  epoch, model, optimizer)
       lr = opt.lr * (0.1 ** (opt.lr_step.index(epoch) + 1))
       print('Drop LR to', lr)

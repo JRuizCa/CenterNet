@@ -171,12 +171,12 @@ class TensorBoardCallback(Callback):
 
     def on_epoch_step(self, global_iteration, epoch_iteration, loss) -> None:
         self.tb_writer.add_scalars(
-            "Train loss (iterations)", {"Loss": loss}, global_iteration
+            "Train (iterations)", {"Loss": loss}, global_iteration
         )
 
     def on_epoch_end(self, epoch, loss) -> None:
         self.tb_writer.add_scalars(
-            "Train loss (epochs)", {"Loss": loss}, epoch
+            "Train (epochs)", {"Loss": loss}, epoch
         )
 
     def on_evaluation_start(self, val_iterations) -> None:
@@ -191,10 +191,10 @@ class TensorBoardCallback(Callback):
     def on_training_iteration_end(self, train_loss, val_loss) -> None:
         if train_loss is not None:
             self.tb_writer.add_scalars(
-                "Epoch loss", {"Loss (train)": train_loss}, self.epoch
+                "Total train", {"Loss": train_loss}, self.epoch
             )
 
         if val_loss is not None:
             self.tb_writer.add_scalars(
-                "Epoch loss", {"Loss (validation)": val_loss}, self.epoch
+                "Validation", {"Loss": val_loss}, self.epoch
             )
