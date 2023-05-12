@@ -79,14 +79,6 @@ class BaseTrainer(object):
           iter_id,
           loss,
         )
-      # else:
-      #   self.notify_callbacks(
-      #     "on_evaluation_step",
-      #     iter_id,
-      #     outputs.detach().cpu(),
-      #     targets.detach().cpu(),
-      #     loss,
-      #   )
       loss = loss.mean()
       if phase == 'train':
         self.optimizer.zero_grad()

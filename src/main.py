@@ -75,11 +75,11 @@ def main(opt):
   best = 1e10
   trainer.notify_callbacks("on_training_start", opt.num_epochs)
   
-
   for epoch in range(start_epoch + 1, opt.num_epochs + 1):
     trainer.notify_callbacks("on_epoch_start", epoch, len(train_loader))
     mark = epoch if opt.save_all else 'last'
     log_dict_train, _ = trainer.train(epoch, train_loader)
+    
     if opt.val_intervals > 0 and epoch % opt.val_intervals == 0:
       trainer.notify_callbacks("on_evaluation_start", len(val_loader))
       save_model(os.path.join(opt.save_dir, 'model_{}.pth'.format(mark)), 

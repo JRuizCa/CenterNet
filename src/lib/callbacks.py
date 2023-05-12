@@ -157,6 +157,7 @@ class TensorBoardCallback(Callback):
         super().__init__()
         self.tb_writer = tb_writer
         self.epoch = 0
+        self.epoch_iterations = 0
 
     def on_training_start(self, epochs) -> None:
         pass
@@ -166,6 +167,7 @@ class TensorBoardCallback(Callback):
 
     def on_epoch_start(self, epoch_num, epoch_iterations) -> None:
         self.epoch = epoch_num
+        self.epoch_iterations = epoch_iterations
 
     def on_epoch_step(self, global_iteration, epoch_iteration, loss) -> None:
         self.tb_writer.add_scalars(
