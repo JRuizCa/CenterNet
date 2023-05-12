@@ -79,6 +79,7 @@ def main(opt):
     trainer.notify_callbacks("on_epoch_start", epoch, len(train_loader))
     mark = epoch if opt.save_all else 'last'
     log_dict_train, _ = trainer.train(epoch, train_loader)
+    trainer.notify_callbacks("on_epoch_end", epoch, log_dict_train['loss'])
     
     if opt.val_intervals > 0 and epoch % opt.val_intervals == 0:
       trainer.notify_callbacks("on_evaluation_start", len(val_loader))
@@ -92,7 +93,6 @@ def main(opt):
         save_model(os.path.join(opt.save_dir, 'model_best.pth'), 
                    epoch, model)
     else:
-      trainer.notify_callbacks("on_epoch_end", epoch, log_dict_train['loss'])
       save_model(os.path.join(opt.save_dir, 'model_last.pth'), 
                  epoch, model, optimizer)
     if epoch in opt.lr_step:
