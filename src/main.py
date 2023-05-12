@@ -73,10 +73,15 @@ def main(opt):
 
   print('Starting training...')
   best = 1e10
+  trainer.notify_callbacks("on_training_start", opt.num_epochs)
+  
+
   for epoch in range(start_epoch + 1, opt.num_epochs + 1):
+    trainer.notify_callbacks("on_epoch_start", epoch, len(train_loader))
     mark = epoch if opt.save_all else 'last'
     log_dict_train, _ = trainer.train(epoch, train_loader)
     if opt.val_intervals > 0 and epoch % opt.val_intervals == 0:
+      trainer.notify_callbacks("on_evaluation_start", len(val_loader))
       save_model(os.path.join(opt.save_dir, 'model_{}.pth'.format(mark)), 
                  epoch, model, optimizer)
       with torch.no_grad():
@@ -87,6 +92,7 @@ def main(opt):
         save_model(os.path.join(opt.save_dir, 'model_best.pth'), 
                    epoch, model)
     else:
+      trainer.notify_callbacks("on_epoch_end", epoch, log_dict_train['loss'])
       save_model(os.path.join(opt.save_dir, 'model_last.pth'), 
                  epoch, model, optimizer)
     if epoch in opt.lr_step:

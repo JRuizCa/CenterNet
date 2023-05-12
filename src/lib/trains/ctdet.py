@@ -25,6 +25,7 @@ class CtdetLoss(torch.nn.Module):
               NormRegL1Loss() if opt.norm_wh else \
               RegWeightedL1Loss() if opt.cat_spec_wh else self.crit_reg
     self.opt = opt
+    self.callbacks = []
 
   def forward(self, outputs, batch):
     opt = self.opt

@@ -54,7 +54,6 @@ class BaseTrainer(object):
       torch.cuda.empty_cache()
 
     opt = self.opt
-    self.notify_callbacks("on_training_start", opt.num_epochs)
     results = {}
     data_time, batch_time = AverageMeter(), AverageMeter()
     avg_loss_stats = {l: AverageMeter() for l in self.loss_stats}
@@ -64,10 +63,6 @@ class BaseTrainer(object):
     for iter_id, batch in enumerate(data_loader):
       if phase == 'train':
         self.iteration += 1
-        self.notify_callbacks("on_epoch_start", epoch, len(data_loader))
-      else:
-        self.notify_callbacks("on_evaluation_start", len(data_loader))
-
       print(f'Iteration number {iter_id} of {num_iters}')
       if iter_id >= num_iters:
         break
@@ -121,9 +116,7 @@ class BaseTrainer(object):
       
       if opt.test:
         self.save_result(output, batch, results)
-      if phase == 'train':
-        self.notify_callbacks("on_epoch_end", loss)
-      else:
+      if phase == 'val':
         self.notify_callbacks("on_evaluation_end")
       del output, loss, loss_stats
     

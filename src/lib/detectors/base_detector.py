@@ -156,37 +156,70 @@ class BaseDetector(object):
     detections = []
     for scale in self.scales:
       scale_start_time = time.time()
-      for x1, x2, y1, y2, image_cropped in self.crop_image_sliding_window(image):
-        print(x1, x2, y1, y2)
-        if not pre_processed:
-          images, meta = self.pre_process(image_cropped, scale, meta)
-        else:
-          # import pdb; pdb.set_trace()
-          images = pre_processed_images['images'][scale][0]
-          meta = pre_processed_images['meta'][scale]
-          meta = {k: v.numpy()[0] for k, v in meta.items()}
-        images = images.to(self.opt.device)
-        torch.cuda.synchronize()
-        pre_process_time = time.time()
-        pre_time += pre_process_time - scale_start_time
-        
-        output, dets, forward_time = self.process(images, return_time=True)
+      if self.opt.crop_image == 1:
+        for x1, x2, y1, y2, image_cropped in self.crop_image_sliding_window(image):
+          torch.cuda.synchronize()
+          crop_image_time = time.time()
+          crop_time = crop_image_time - scale_start_time
+          print(x1, x2, y1, y2)
+          if not pre_processed:
+            images, meta = self.pre_process(image_cropped, scale, meta)
+          else:
+            # import pdb; pdb.set_trace()
+            images = pre_processed_images['images'][scale][0]
+            meta = pre_processed_images['meta'][scale]
+            meta = {k: v.numpy()[0] for k, v in meta.items()}
+          images = images.to(self.opt.device)
+          torch.cuda.synchronize()
+          pre_process_time = time.time()
+          pre_time += pre_process_time - scale_start_time
+          
+          output, dets, forward_time = self.process(images, return_time=True)
 
-        torch.cuda.synchronize()
-        net_time += forward_time - pre_process_time
-        decode_time = time.time()
-        dec_time += decode_time - forward_time
-        
-        if self.opt.debug >= 2:
-          self.debug(debugger, images, dets, output, scale)
-        
-        dets = self.post_process(dets, meta, scale)
-        torch.cuda.synchronize()
-        post_process_time = time.time()
-        post_time += post_process_time - decode_time
-        
-        detections_all = self.map_cropped_detections(dets, x1, y1)
-        detections.append(detections_all)
+          torch.cuda.synchronize()
+          net_time += forward_time - pre_process_time
+          decode_time = time.time()
+          dec_time += decode_time - forward_time
+          
+          if self.opt.debug >= 2:
+            self.debug(debugger, images, dets, output, scale)
+          
+          dets = self.post_process(dets, meta, scale)
+          torch.cuda.synchronize()
+          post_process_time = time.time()
+          post_time += post_process_time - decode_time
+          
+          detections_all = self.map_cropped_detections(dets, x1, y1)
+          detections.append(detections_all)
+      else:
+          if not pre_processed:
+            images, meta = self.pre_process(image, scale, meta)
+          else:
+            # import pdb; pdb.set_trace()
+            images = pre_processed_images['images'][scale][0]
+            meta = pre_processed_images['meta'][scale]
+            meta = {k: v.numpy()[0] for k, v in meta.items()}
+          images = images.to(self.opt.device)
+          torch.cuda.synchronize()
+          pre_process_time = time.time()
+          pre_time += pre_process_time - scale_start_time
+          
+          output, dets, forward_time = self.process(images, return_time=True)
+
+          torch.cuda.synchronize()
+          net_time += forward_time - pre_process_time
+          decode_time = time.time()
+          dec_time += decode_time - forward_time
+          
+          if self.opt.debug >= 2:
+            self.debug(debugger, images, dets, output, scale)
+          
+          dets = self.post_process(dets, meta, scale)
+          torch.cuda.synchronize()
+          post_process_time = time.time()
+          post_time += post_process_time - decode_time
+          
+          detections.append(dets)
     
     results = self.merge_outputs(detections)
     torch.cuda.synchronize()
@@ -197,6 +230,6 @@ class BaseDetector(object):
     if self.opt.debug >= 1:
       self.show_results(debugger, image, results)
     
-    return {'results': results, 'tot': tot_time, 'load': load_time,
-            'pre': pre_time, 'net': net_time, 'dec': dec_time,
-            'post': post_time, 'merge': merge_time}
+    return {'results': results, 'tot': tot_time, 'load': load_time, 
+            'crop': crop_time,'pre': pre_time, 'net': net_time, 
+            'dec': dec_time,'post': post_time, 'merge': merge_time}

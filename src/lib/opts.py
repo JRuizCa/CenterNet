@@ -31,7 +31,10 @@ class opts(object):
                              help='resume an experiment. '
                                   'Reloaded the optimizer parameter and '
                                   'set load_model to model_last.pth '
-                                  'in the exp dir if load_model is empty.') 
+                                  'in the exp dir if load_model is empty.')
+    self.parser.add_argument('--crop_image', type=int, default=1,
+                             help= '0: no crop'
+                             '1: crop image into 512x512 windows')
 
     # system
     self.parser.add_argument('--gpus', default='0', 

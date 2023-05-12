@@ -26,7 +26,7 @@ class Callback(ABC):
         pass
 
     @abstractmethod
-    def on_epoch_end(self, loss) -> None:
+    def on_epoch_end(self, epoch, loss) -> None:
         pass
 
     @abstractmethod
@@ -109,7 +109,7 @@ class DefaultModelCallback(Callback):
                 f"Epoch {self._epoch}/{self._epochs}      Iteration {epoch_iteration}/{self._epoch_iterations}    {loss_string}    Time: {average_time} seconds/iteration"
             )
 
-    def on_epoch_end(self, loss) -> None:
+    def on_epoch_end(self, epoch, loss) -> None:
         self._train_losses.append(loss)
 
     def on_evaluation_start(self, val_iterations) -> None:
@@ -172,8 +172,10 @@ class TensorBoardCallback(Callback):
             "Train loss (iterations)", {"Loss": loss}, global_iteration
         )
 
-    def on_epoch_end(self, loss) -> None:
-        pass
+    def on_epoch_end(self, epoch, loss) -> None:
+        self.tb_writer.add_scalars(
+            "Train loss (epochs)", {"Loss": loss}, epoch
+        )
 
     def on_evaluation_start(self, val_iterations) -> None:
         pass

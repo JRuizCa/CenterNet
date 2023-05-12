@@ -12,7 +12,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["ctdet", "--demo", "/home/julia/TFM/CenterNet/models/4.jpg", "--load_model", "/home/julia/TFM/CenterNet/models/model_last.pth"]
+            "args": ["ctdet", "--demo", "/home/julia/TFM/CenterNet/data/barcode/test/10.jpeg", "--load_model", "/home/julia/TFM/CenterNet/models/model_last.pth"]
         }
     ]
 }
