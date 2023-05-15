@@ -64,21 +64,6 @@ class BaseDetector(object):
             'out_height': inp_height // self.opt.down_ratio, 
             'out_width': inp_width // self.opt.down_ratio}
     return images, meta
-
-  def process(self, images, return_time=False):
-    raise NotImplementedError
-
-  def post_process(self, dets, meta, scale=1):
-    raise NotImplementedError
-
-  def merge_outputs(self, detections):
-    raise NotImplementedError
-
-  def debug(self, debugger, images, dets, output, scale=1):
-    raise NotImplementedError
-
-  def show_results(self, debugger, image, results):
-   raise NotImplementedError
   
   def map_cropped_detections(self, detections, x1, y1):
     for j in range(1, len(detections)+1):
@@ -134,6 +119,77 @@ class BaseDetector(object):
           cropped_image = image[y1:y2, x1:x2]
         yield (x1, x2, y1, y2, cropped_image) 
 
+  def IOU(self, box1, box2):
+    """ We assume that the box follows the format:
+      box1 = [x1,y1,x2,y2], and box2 = [x3,y3,x4,y4],
+      where (x1,y1) and (x3,y3) represent the top left coordinate,
+      and (x2,y2) and (x4,y4) represent the bottom right coordinate """
+    box1[box1 <0] == 0
+    box2[box2 <0] == 0
+    x1, y1, x2, y2 = box1	
+    x3, y3, x4, y4 = box2
+    x_inter1 = max(x1, x3)
+    y_inter1 = max(y1, y3)
+    x_inter2 = min(x2, x4)
+    y_inter2 = min(y2, y4)
+
+    area_inter = abs(max((x_inter2 - x_inter1, 0)) * max((y_inter2 - y_inter1), 0))
+    if area_inter == 0:
+        return 0
+    
+    width_box1 = abs(x2 - x1)
+    height_box1 = abs(y2 - y1)
+    width_box2 = abs(x4 - x3)
+    height_box2 = abs(y4 - y3)
+    area_box1 = width_box1 * height_box1
+    area_box2 = width_box2 * height_box2
+    area_union = area_box1 + area_box2 - area_inter
+    iou = area_inter / area_union
+    return iou
+
+  def nms(self, boxes, conf_threshold=0.2, iou_threshold=0.4, iou_merge_threshold=0.05):
+    bbox_list_thresholded = []
+    bbox_list_new = []
+    boxes = boxes[1]
+    boxes_sorted = sorted(boxes, reverse=True, key = lambda x : x[4])
+    for box in boxes_sorted:
+      if box[4] > conf_threshold:
+          bbox_list_thresholded.append(box)
+      else:
+          pass
+    while len(bbox_list_thresholded) > 0:
+      current_box = bbox_list_thresholded.pop(0)
+      bbox_list_new.append(current_box)
+      for box in bbox_list_thresholded:
+        iou = self.IOU(current_box[:4], box[:4])
+        if iou >= iou_threshold:
+            bbox_list_thresholded.remove(box)
+        elif iou > iou_merge_threshold:
+            bbox_list_thresholded.remove(box)
+            bbox_list_new.pop(-1)
+            new_bbox = [min(current_box[0], box[0]), 
+                        min(current_box[1], box[1]), 
+                        max(current_box[2], box[2]), 
+                        max(current_box[3], box[3]), current_box[4]]
+            bbox_list_new.append(new_bbox)
+    results = {1: bbox_list_new}
+    return results
+    
+  def process(self, images, return_time=False):
+    raise NotImplementedError
+
+  def post_process(self, dets, meta, scale=1):
+    raise NotImplementedError
+
+  def merge_outputs(self, detections):
+    raise NotImplementedError
+
+  def debug(self, debugger, images, dets, output, scale=1):
+    raise NotImplementedError
+
+  def show_results(self, debugger, image, results):
+   raise NotImplementedError
+  
   def run(self, image_or_path_or_tensor, meta=None):
     load_time, pre_time, net_time, dec_time, post_time = 0, 0, 0, 0, 0
     merge_time, tot_time = 0, 0
@@ -222,6 +278,7 @@ class BaseDetector(object):
           detections.append(dets)
     
     results = self.merge_outputs(detections)
+    results = self.nms(results)
     torch.cuda.synchronize()
     end_time = time.time()
     merge_time += end_time - post_process_time
