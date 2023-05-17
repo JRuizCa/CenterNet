@@ -72,13 +72,6 @@ class BaseTrainer(object):
         if k != 'meta':
           batch[k] = batch[k].to(device=opt.device, non_blocking=True)    
       output, loss, loss_stats = model_with_loss(batch)
-      if phase == 'train':
-        self.notify_callbacks(
-          "on_epoch_step",
-          self.iteration,
-          iter_id,
-          loss,
-        )
       loss = loss.mean()
       if phase == 'train':
         self.optimizer.zero_grad()

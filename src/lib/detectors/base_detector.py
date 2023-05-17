@@ -29,7 +29,7 @@ class BaseDetector(object):
 
     self.mean = np.array(opt.mean, dtype=np.float32).reshape(1, 1, 3)
     self.std = np.array(opt.std, dtype=np.float32).reshape(1, 1, 3)
-    self.max_per_image = 3
+    self.max_per_image = 5
     self.num_classes = opt.num_classes
     self.scales = opt.test_scales
     self.opt = opt
@@ -64,117 +64,7 @@ class BaseDetector(object):
             'out_height': inp_height // self.opt.down_ratio, 
             'out_width': inp_width // self.opt.down_ratio}
     return images, meta
-  
-  def map_cropped_detections(self, detections, x1, y1):
-    for j in range(1, len(detections)+1):
-      if len(detections[j]) == 0:
-        continue
-      for detection in detections[j]:
-        detection[0] = detection[0] + x1
-        detection[1] = detection[1] + y1
-        detection[2] = detection[2] + x1
-        detection[3] = detection[3] + y1
-    return detections
-  
-  def crop_image_sliding_window(self, image, window_size=512):
-    height, width = image.shape[0:2]
-    y_windows = height/window_size # 3
-    x_windows = width/window_size
 
-    round_y_windows = math.floor(y_windows + 1) # 4
-    round_x_windows = math.floor(x_windows + 1)
-    step_size_y = (round_y_windows - y_windows ) * window_size # 512
-    step_size_x = (round_x_windows - x_windows) * window_size
-
-    step_size_y = math.ceil(step_size_y/math.floor(y_windows)) # 170
-    step_size_x = math.ceil(step_size_x/math.floor(x_windows)) # 128
-    
-    y1 = 0
-    x1 = 0
-    for y in range(0, round_y_windows):
-      prev_y = y1 + window_size
-      for x in range(0, round_x_windows):
-        prev_x = x1 + window_size
-        if x == 0 and y == 0:
-          y2 = y1 + window_size
-          x2 = x1 + window_size
-          cropped_image = image[y1:y2, x1:x2]
-        elif x != 0 and y != 0:
-          y1 = prev_y - step_size_y
-          x1 = prev_x - step_size_x
-          y2 = y1 + window_size
-          x2 = x1 + window_size
-          cropped_image = image[y1:y2, x1:x2]
-        elif x == 0:
-          y1 = prev_y - step_size_y
-          x1 = 0
-          y2 = y1 + window_size
-          x2 = x1 + window_size       
-          cropped_image = image[y1:y2, x1:x2]
-        else:
-          y1 = 0
-          x1 = prev_x - step_size_x
-          y2 = y1 + window_size
-          x2 = x1 + window_size
-          cropped_image = image[y1:y2, x1:x2]
-        yield (x1, x2, y1, y2, cropped_image) 
-
-  def IOU(self, box1, box2):
-    """ We assume that the box follows the format:
-      box1 = [x1,y1,x2,y2], and box2 = [x3,y3,x4,y4],
-      where (x1,y1) and (x3,y3) represent the top left coordinate,
-      and (x2,y2) and (x4,y4) represent the bottom right coordinate """
-    box1[box1 <0] == 0
-    box2[box2 <0] == 0
-    x1, y1, x2, y2 = box1	
-    x3, y3, x4, y4 = box2
-    x_inter1 = max(x1, x3)
-    y_inter1 = max(y1, y3)
-    x_inter2 = min(x2, x4)
-    y_inter2 = min(y2, y4)
-
-    area_inter = abs(max((x_inter2 - x_inter1, 0)) * max((y_inter2 - y_inter1), 0))
-    if area_inter == 0:
-        return 0
-    
-    width_box1 = abs(x2 - x1)
-    height_box1 = abs(y2 - y1)
-    width_box2 = abs(x4 - x3)
-    height_box2 = abs(y4 - y3)
-    area_box1 = width_box1 * height_box1
-    area_box2 = width_box2 * height_box2
-    area_union = area_box1 + area_box2 - area_inter
-    iou = area_inter / area_union
-    return iou
-
-  def nms(self, boxes, conf_threshold=0.2, iou_threshold=0.4, iou_merge_threshold=0.05):
-    bbox_list_thresholded = []
-    bbox_list_new = []
-    boxes = boxes[1]
-    boxes_sorted = sorted(boxes, reverse=True, key = lambda x : x[4])
-    for box in boxes_sorted:
-      if box[4] > conf_threshold:
-          bbox_list_thresholded.append(box)
-      else:
-          pass
-    while len(bbox_list_thresholded) > 0:
-      current_box = bbox_list_thresholded.pop(0)
-      bbox_list_new.append(current_box)
-      for box in bbox_list_thresholded:
-        iou = self.IOU(current_box[:4], box[:4])
-        if iou >= iou_threshold:
-            bbox_list_thresholded.remove(box)
-        elif iou > iou_merge_threshold:
-            bbox_list_thresholded.remove(box)
-            bbox_list_new.pop(-1)
-            new_bbox = [min(current_box[0], box[0]), 
-                        min(current_box[1], box[1]), 
-                        max(current_box[2], box[2]), 
-                        max(current_box[3], box[3]), current_box[4]]
-            bbox_list_new.append(new_bbox)
-    results = {1: bbox_list_new}
-    return results
-    
   def process(self, images, return_time=False):
     raise NotImplementedError
 
@@ -212,73 +102,36 @@ class BaseDetector(object):
     detections = []
     for scale in self.scales:
       scale_start_time = time.time()
-      if self.opt.crop_image == 1:
-        for x1, x2, y1, y2, image_cropped in self.crop_image_sliding_window(image):
-          torch.cuda.synchronize()
-          crop_image_time = time.time()
-          crop_time = crop_image_time - scale_start_time
-          print(x1, x2, y1, y2)
-          if not pre_processed:
-            images, meta = self.pre_process(image_cropped, scale, meta)
-          else:
-            # import pdb; pdb.set_trace()
-            images = pre_processed_images['images'][scale][0]
-            meta = pre_processed_images['meta'][scale]
-            meta = {k: v.numpy()[0] for k, v in meta.items()}
-          images = images.to(self.opt.device)
-          torch.cuda.synchronize()
-          pre_process_time = time.time()
-          pre_time += pre_process_time - scale_start_time
-          
-          output, dets, forward_time = self.process(images, return_time=True)
-
-          torch.cuda.synchronize()
-          net_time += forward_time - pre_process_time
-          decode_time = time.time()
-          dec_time += decode_time - forward_time
-          
-          if self.opt.debug >= 2:
-            self.debug(debugger, images, dets, output, scale)
-          
-          dets = self.post_process(dets, meta, scale)
-          torch.cuda.synchronize()
-          post_process_time = time.time()
-          post_time += post_process_time - decode_time
-          
-          detections_all = self.map_cropped_detections(dets, x1, y1)
-          detections.append(detections_all)
+      if not pre_processed:
+        images, meta = self.pre_process(image, scale, meta)
       else:
-          if not pre_processed:
-            images, meta = self.pre_process(image, scale, meta)
-          else:
-            # import pdb; pdb.set_trace()
-            images = pre_processed_images['images'][scale][0]
-            meta = pre_processed_images['meta'][scale]
-            meta = {k: v.numpy()[0] for k, v in meta.items()}
-          images = images.to(self.opt.device)
-          torch.cuda.synchronize()
-          pre_process_time = time.time()
-          pre_time += pre_process_time - scale_start_time
-          
-          output, dets, forward_time = self.process(images, return_time=True)
+        # import pdb; pdb.set_trace()
+        images = pre_processed_images['images'][scale][0]
+        meta = pre_processed_images['meta'][scale]
+        meta = {k: v.numpy()[0] for k, v in meta.items()}
+      images = images.to(self.opt.device)
+      torch.cuda.synchronize()
+      pre_process_time = time.time()
+      pre_time += pre_process_time - scale_start_time
+      
+      output, dets, forward_time = self.process(images, return_time=True)
 
-          torch.cuda.synchronize()
-          net_time += forward_time - pre_process_time
-          decode_time = time.time()
-          dec_time += decode_time - forward_time
-          
-          if self.opt.debug >= 2:
-            self.debug(debugger, images, dets, output, scale)
-          
-          dets = self.post_process(dets, meta, scale)
-          torch.cuda.synchronize()
-          post_process_time = time.time()
-          post_time += post_process_time - decode_time
-          
-          detections.append(dets)
+      torch.cuda.synchronize()
+      net_time += forward_time - pre_process_time
+      decode_time = time.time()
+      dec_time += decode_time - forward_time
+      
+      if self.opt.debug >= 2:
+        self.debug(debugger, images, dets, output, scale)
+      
+      dets = self.post_process(dets, meta, scale)
+      torch.cuda.synchronize()
+      post_process_time = time.time()
+      post_time += post_process_time - decode_time
+      
+      detections.append(dets)
     
     results = self.merge_outputs(detections)
-    results = self.nms(results)
     torch.cuda.synchronize()
     end_time = time.time()
     merge_time += end_time - post_process_time
@@ -288,5 +141,5 @@ class BaseDetector(object):
       self.show_results(debugger, image, results)
     
     return {'results': results, 'tot': tot_time, 'load': load_time, 
-            'crop': crop_time,'pre': pre_time, 'net': net_time, 
+            'pre': pre_time, 'net': net_time, 
             'dec': dec_time,'post': post_time, 'merge': merge_time}

@@ -32,9 +32,6 @@ class opts(object):
                                   'Reloaded the optimizer parameter and '
                                   'set load_model to model_last.pth '
                                   'in the exp dir if load_model is empty.')
-    self.parser.add_argument('--crop_image', type=int, default=1,
-                             help= '0: no crop'
-                             '1: crop image into 512x512 windows')
 
     # system
     self.parser.add_argument('--gpus', default='0', 
@@ -55,7 +52,7 @@ class opts(object):
                              help='save model to disk every 5 epochs.')
     self.parser.add_argument('--metric', default='loss', 
                              help='main metric to save best model')
-    self.parser.add_argument('--vis_thresh', type=float, default=0.2,
+    self.parser.add_argument('--vis_thresh', type=float, default=0.3,
                              help='visualization threshold.')
     self.parser.add_argument('--debugger_theme', default='white', 
                              choices=['white', 'black'])
@@ -108,7 +105,7 @@ class opts(object):
                              help='multi scale test augmentation.')
     self.parser.add_argument('--nms', action='store_true',
                              help='run nms in testing.')
-    self.parser.add_argument('--K', type=int, default=15,
+    self.parser.add_argument('--K', type=int, default=5,
                              help='max number of output objects.') 
     self.parser.add_argument('--not_prefetch_test', action='store_true',
                              help='not use parallal data pre-processing.')
