@@ -15,12 +15,13 @@ from detectors.detector_factory import detector_factory
 from utils.debugger import Debugger
 
 CENTERNET_PATH = "/home/julia/TFM/CenterNet/src/lib/"
-IMAGE_PATH = '/home/julia/TFM/CenterNet/data/barcode/test/11.jpeg'
-MODEL_PATH = "/home/julia/TFM/CenterNet/models/model_last_100e_17_05.pth"
+IMAGE_PATH = '/home/julia/TFM/CenterNet/data/barcode/test/13.jpg'
+MODEL_PATH = "/home/julia/TFM/CenterNet/models/logs_2023-05-26-17-14/model_last.pth"
 TASK = 'ctdet' 
+NON_MAX_SUP = True
 sys.path.insert(0, CENTERNET_PATH)
 
-def crop_image_sliding_window(image, overlap_degree=0.3, window_size=512):
+def crop_image_sliding_window(image, overlap_degree=0.4, window_size=512):
     height, width = image.shape[0:2]
     overlap = math.ceil(window_size * overlap_degree)
     step = window_size - overlap
@@ -78,7 +79,7 @@ def calculate_iou(bbox1, bbox2):
     
     return iou
 
-def non_maximum_suppression(bboxes, threshold=0.25, conf_threshold=0.3):
+def non_maximum_suppression(bboxes, threshold=0, conf_threshold=0.3):
     bboxes_confidence = [x for x in bboxes if x[4] >= conf_threshold]
     scores = [x[4] for x in bboxes_confidence]
     sorted_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
@@ -111,7 +112,11 @@ def main():
     ret_original = detector.run(image)['results']
     results_original_image.extend(ret_original[1])
 
-    res = non_maximum_suppression(results_original_image)
+    if NON_MAX_SUP == True:
+        res = non_maximum_suppression(results_original_image)
+    else:
+       res = results_original_image
+
     debugger = Debugger(dataset=opt.dataset, ipynb=(opt.debug==3),
                     theme=opt.debugger_theme)
     dict_results = {1: res}
