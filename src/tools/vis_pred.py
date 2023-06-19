@@ -4,8 +4,9 @@ import sys
 import cv2
 import numpy as np
 import pickle
-IMG_PATH = '../../data/coco/val2017/'
-ANN_PATH = '../../data/coco/annotations/instances_val2017.json'
+IMG_PATH = '/home/julia/TFM/CenterNet/data/barcode/test/'
+ANN_PATH = '/home/julia/TFM/CenterNet/data/barcode/annotations/instances_test.json'
+pred_path = '/home/julia/TFM/CenterNet/data/barcode/annotations/results.json'
 DEBUG = True
 
 def _coco_box_to_bbox(box):
@@ -14,23 +15,15 @@ def _coco_box_to_bbox(box):
   return bbox
 
 _cat_ids = [
-  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 
-  14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 
-  24, 25, 27, 28, 31, 32, 33, 34, 35, 36, 
-  37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 
-  48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 
-  58, 59, 60, 61, 62, 63, 64, 65, 67, 70, 
-  72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 
-  82, 84, 85, 86, 87, 88, 89, 90
+  1
 ]
-num_classes = 80
+num_classes = 1
 _classes = {
   ind + 1: cat_id for ind, cat_id in enumerate(_cat_ids)
 }
 _to_order = {cat_id: ind for ind, cat_id in enumerate(_cat_ids)}
 coco = coco.COCO(ANN_PATH)
-CAT_NAMES = [coco.loadCats([_classes[i + 1]])[0]['name'] \
-              for i in range(num_classes)]
+CAT_NAMES = 'barcode'
 COLORS = [((np.random.random((3, )) * 0.6 + 0.4)*255).astype(np.uint8) \
               for _ in range(num_classes)]
 
