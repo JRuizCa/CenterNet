@@ -268,7 +268,8 @@ class exkp(nn.Module):
             
             outs.append(out)
             if ind < self.nstack - 1:
-                inter = self.inters_[ind](inter) + self.cnvs_[ind](cnv)
+                # sum the conv of the input of the hourglass module and the conv of the hourglass output
+                inter = self.inters_[ind](inter) + self.cnvs_[ind](cnv) 
                 inter = self.relu(inter)
                 inter = self.inters[ind](inter)
         return outs
