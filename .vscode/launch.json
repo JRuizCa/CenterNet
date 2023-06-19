@@ -11,8 +11,11 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": true,
-            "args": ["ctdet", "--demo", "/home/julia/TFM/CenterNet/data/barcode/test/1.jpeg", "--load_model", "/home/julia/TFM/CenterNet/models/model_last_100e_17_05.pth"]
+            "justMyCode": false,
+            "args": ["ctdet", "--exp_id", "barcode_hg", "--arch", "hourglass",  "--load_model", "/home/julia/TFM/CenterNet/models/logs_2023-05-26-17-14/model_120.pth", "--not_prefetch_test", "--trainval"]  
         }
     ]
-}
+} 
+
+
+// for inference: "args": ["ctdet", "--demo", "/home/julia/TFM/CenterNet/data/barcode/test/13.jpg", "--load_model", "/home/julia/TFM/CenterNet/models/logs_2023-05-26-17-14/model_last.pth"]
