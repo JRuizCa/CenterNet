@@ -11,7 +11,7 @@ def transform_preds_results_json_to_txt(results_json):
     data['category_id'] = data['category_id'].apply(lambda x: 'barcode')
     data.set_index('image_id', inplace=True)
     for index in data.index.unique():
-        with open(f'mAP/input/detection-results/{index}.txt', 'w') as txt_file:
+        with open(f'../mAP/input/detection-results/{index}.txt', 'w') as txt_file:
             for i in range(len(data[data.index == index])):
                 data_index = data[data.index == index]
                 txt_file.write(f"barcode ")
@@ -28,7 +28,7 @@ def transform_gt_json_to_txt(gt_json):
     data['category_id'] = data['category_id'].apply(lambda x: 'barcode')
     data.set_index('image_id', inplace=True)
     for index in data.index.unique():
-        with open(f'mAP/input/ground-truth{index}.txt', 'w') as txt_file:
+        with open(f'../mAP/input/ground-truth/{index}.txt', 'w') as txt_file:
             for i in range(len(data[data.index == index])):
                 data_index = data[data.index == index]
                 txt_file.write(f"barcode ")
@@ -38,8 +38,9 @@ def transform_gt_json_to_txt(gt_json):
 
 
 def main():
-    transform_preds_results_json_to_txt('eval/results-sliding.json')
-    transform_gt_json_to_txt('eval/instances_test.json')
+    transform_preds_results_json_to_txt('/home/julia/TFM/CenterNet/exp/ctdet/barcode_hg/results.json')
+    transform_gt_json_to_txt('/home/julia/TFM/CenterNet/data/barcode/annotations/instances_test.json')
+    print("Done!")
         
 if __name__ == "__main__":
     main()

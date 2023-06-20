@@ -71,17 +71,101 @@ def prefetch_test(opt):
   bar = Bar('{}'.format(opt.exp_id), max=num_iters)
   time_stats = ['tot', 'load', 'pre', 'net', 'dec', 'post', 'merge']
   avg_time_stats = {t: AverageMeter() for t in time_stats}
+  results_time = {'tot': 0, 'load': 0, 'pre': 0, 'net': 0, 'dec': 0, 'post': 0, 'merge': 0}
   for ind, (img_id, pre_processed_images) in enumerate(data_loader):
-    ret = detector.run(pre_processed_images)
-    results[img_id.numpy().astype(np.int32)[0]] = ret['results']
+    results_all = []
+    for x1, y1, image_cropped in crop_image_sliding_window(pre_processed_images['image'][0]):
+      ret_cropped = detector.run(image_cropped)
+      results_cropped = map_cropped_detections(ret_cropped['results'], x1, y1)
+      results_all.extend(results_cropped[1])
+      for key in results_time.keys():          
+        results_time[key] = results_time[key] + ret_cropped[key]
+
+    ret_original = detector.run(pre_processed_images)
+    results_all.extend(ret_original['results'][1])
+    for key in results_time.keys():          
+      results_time[key] = results_time[key] + ret_original[key]
+
+    if NON_MAX_SUP == True:
+      ret = non_maximum_suppression(results_all)
+      ret = {0: ret}
+    else:
+      ret = {0: results_all}
+    
+    results[ind] = ret
+  
+    # ret = detector.run(pre_processed_images)
+    # results[img_id.numpy().astype(np.int32)[0]] = ret['results']
     Bar.suffix = '[{0}/{1}]|Tot: {total:} |ETA: {eta:} '.format(
                    ind, num_iters, total=bar.elapsed_td, eta=bar.eta_td)
     for t in avg_time_stats:
-      avg_time_stats[t].update(ret[t])
-      Bar.suffix = Bar.suffix + '|{} {tm.val:.3f}s ({tm.avg:.3f}s) '.format(
-        t, tm = avg_time_stats[t])
+      avg_time_stats[t].update(results_time[t])
+      Bar.suffix = Bar.suffix + '|{} {:.3f} '.format(t, avg_time_stats[t].avg)
     bar.next()
   bar.finish()
+  dataset.run_eval(results, opt.save_dir)
+
+def test(opt):
+  os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
+
+  Dataset = dataset_factory[opt.dataset]
+  opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
+  print(opt)
+  Logger(opt)
+  Detector = detector_factory[opt.task]
+  
+  split = 'val' if not opt.trainval else 'test'
+  dataset = Dataset(opt, split)
+  detector = Detector(opt)
+
+  results = {}
+
+  num_iters = len(dataset)
+  bar = Bar('{}'.format(opt.exp_id), max=num_iters)
+  time_stats = ['tot', 'load', 'pre', 'net', 'dec', 'post', 'merge']
+  avg_time_stats = {t: AverageMeter() for t in time_stats}
+  for ind in range(num_iters):
+    results_time = {'tot': 0, 'load': 0, 'pre': 0, 'net': 0, 'dec': 0, 'post': 0, 'merge': 0}
+    results_all = []
+    img_id = dataset.images[ind]
+    img_info = dataset.coco.loadImgs(ids=[img_id])[0]
+    img_path = os.path.join(dataset.img_dir, img_info['file_name'])
+    image = cv2.imread(img_path)
+
+    if opt.task == 'ddd':
+      ret = detector.run(img_path, img_info['calib'])
+    else:
+      for x1, y1, image_cropped in crop_image_sliding_window(image):
+        ret_cropped = detector.run(image_cropped)
+        results_cropped = map_cropped_detections(ret_cropped['results'], x1, y1)
+        results_all.extend(results_cropped[1])
+        for key in results_time.keys():          
+          results_time[key] = results_time[key] + ret_cropped[key]
+
+      ret_original = detector.run(image)
+      results_all.extend(ret_original['results'][1])
+      for key in results_time.keys():          
+          results_time[key] = results_time[key] + ret_original[key]
+
+      if NON_MAX_SUP == True:
+          ret = non_maximum_suppression(results_all)
+          ret = {0: ret}
+      else:
+        ret = {0: results_all}
+    
+    results[img_id] = ret
+    # debugger = Debugger(dataset=opt.dataset, ipynb=(opt.debug==3),
+    #                 theme=opt.debugger_theme)
+    # show_results(debugger, image, ret, opt)
+
+    Bar.suffix = '[{0}/{1}]|Tot: {total:} |ETA: {eta:} '.format(
+                   ind, num_iters, total=bar.elapsed_td, eta=bar.eta_td)
+    for t in avg_time_stats:
+      avg_time_stats[t].update(results_time[t])
+      Bar.suffix = Bar.suffix + '|{} {:.3f} '.format(t, avg_time_stats[t].avg)
+    bar.next()
+  bar.finish()
+  
   dataset.run_eval(results, opt.save_dir)
 
 def crop_image_sliding_window(image, overlap_degree=0.4, window_size=512):
@@ -101,7 +185,7 @@ def crop_image_sliding_window(image, overlap_degree=0.4, window_size=512):
             cropped_image = image[y:y2, x:x2]
             result_image = zeros_image.copy()
             result_image[:cropped_image.shape[0], :cropped_image.shape[1], :] = cropped_image
-            yield (x, x2, y, y2, result_image)
+            yield (x, y, result_image)
 
 def map_cropped_detections(detections, x1, y1):
     for j in range(1, len(detections)+1):
@@ -158,69 +242,6 @@ def show_results(debugger, image, results, opt):
           if bbox[4] > opt.vis_thresh:
             debugger.add_coco_bbox(bbox[:4], j - 1, bbox[4], img_id='ctdet')
     debugger.show_all_imgs(pause=True)
-
-def test(opt):
-  os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
-
-  Dataset = dataset_factory[opt.dataset]
-  opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
-  print(opt)
-  Logger(opt)
-  Detector = detector_factory[opt.task]
-  
-  split = 'val' if not opt.trainval else 'test'
-  dataset = Dataset(opt, split)
-  detector = Detector(opt)
-
-  results = {}
-
-  num_iters = len(dataset)
-  bar = Bar('{}'.format(opt.exp_id), max=num_iters)
-  time_stats = ['tot', 'load', 'pre', 'net', 'dec', 'post', 'merge']
-  avg_time_stats = {t: AverageMeter() for t in time_stats}
-  for ind in range(num_iters):
-    results_time = {'tot': 0, 'load': 0, 'pre': 0, 'net': 0, 'dec': 0, 'post': 0, 'merge': 0}
-    results_all = []
-    img_id = dataset.images[ind]
-    img_info = dataset.coco.loadImgs(ids=[img_id])[0]
-    img_path = os.path.join(dataset.img_dir, img_info['file_name'])
-    image = cv2.imread(img_path)
-
-    if opt.task == 'ddd':
-      ret = detector.run(img_path, img_info['calib'])
-    else:
-      for x1, x2, y1, y2, image_cropped in crop_image_sliding_window(image):
-        ret_cropped = detector.run(image_cropped)
-        results_cropped = map_cropped_detections(ret_cropped['results'], x1, y1)
-        results_all.extend(results_cropped[1])
-        for key in results_time.keys():          
-          results_time[key] = results_time[key] + ret_cropped[key]
-
-      ret_original = detector.run(image)
-      results_all.extend(ret_original['results'][1])
-      for key in results_time.keys():          
-          results_time[key] = results_time[key] + ret_original[key]
-
-      if NON_MAX_SUP == True:
-          ret = non_maximum_suppression(results_all)
-          ret = {0: ret}
-      else:
-        ret = {0: results_all}
-    
-    results[img_id] = ret
-    # debugger = Debugger(dataset=opt.dataset, ipynb=(opt.debug==3),
-    #                 theme=opt.debugger_theme)
-    # show_results(debugger, image, ret, opt)
-
-    Bar.suffix = '[{0}/{1}]|Tot: {total:} |ETA: {eta:} '.format(
-                   ind, num_iters, total=bar.elapsed_td, eta=bar.eta_td)
-    for t in avg_time_stats:
-      avg_time_stats[t].update(results_time[t])
-      Bar.suffix = Bar.suffix + '|{} {:.3f} '.format(t, avg_time_stats[t].avg)
-    bar.next()
-  bar.finish()
-  
-  dataset.run_eval(results, opt.save_dir)
 
 
 if __name__ == '__main__':

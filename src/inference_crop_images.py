@@ -15,7 +15,7 @@ from detectors.detector_factory import detector_factory
 from utils.debugger import Debugger
 
 CENTERNET_PATH = "/home/julia/TFM/CenterNet/src/lib/"
-IMAGE_PATH = '/home/julia/TFM/CenterNet/data/barcode/test/13.jpg'
+IMAGE_PATH = '/home/julia/TFM/CenterNet/data/barcode/test/19.jpg'
 MODEL_PATH = "/home/julia/TFM/CenterNet/models/logs_2023-05-26-17-14/model_last.pth"
 TASK = 'ctdet' 
 NON_MAX_SUP = True
